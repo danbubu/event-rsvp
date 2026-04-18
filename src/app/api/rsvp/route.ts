@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getSupabaseServiceClient } from "@/lib/supabase"
-import { appendRSVPToSheet, ensureSheetHeaders } from "@/lib/googleSheets"
+import { appendRSVPToSheet, ensureSheetHeaders, isGoogleSheetsConfigured } from "@/lib/googleSheets"
 import { sendConfirmationEmail } from "@/lib/email"
 
 // Validation schema
@@ -11,6 +11,7 @@ const rsvpSchema = z.object({
   attending: z.boolean(),
   extraGuest1: z.string().optional(),
   extraGuest2: z.string().optional(),
+  extraGuest3: z.string().optional(),
   website: z.string().optional(), // honeypot field
 })
 
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, email, attending, extraGuest1, extraGuest2 } = parsed.data
+    const { name, email, attending, extraGuest1, extraGuest2, extraGuest3 } = parsed.data
     if (parsed.data.website) {
       return NextResponse.json({ error: "Invalid submission." }, { status: 400 })
     }
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
       attending,
       extra_guest_1: extraGuest1 ?? null,
       extra_guest_2: extraGuest2 ?? null,
+      extra_guest_3: extraGuest3 ?? null,
       submitted_at: submittedAt,
     })
 
@@ -89,21 +91,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to save RSVP. Please try again." }, { status: 500 })
     }
 
+    const sheetRow = {
+      guestName: name,
+      email,
+      attending,
+      extraGuest1,
+      extraGuest2,
+      extraGuest3,
+      submittedAt: new Date(submittedAt).toLocaleString("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    }
+
     const [sheetResult, emailResult] = await Promise.allSettled([
-      ensureSheetHeaders().then(() =>
-        appendRSVPToSheet({
-          guestName: name,
-          email,
-          attending,
-          extraGuest1,
-          extraGuest2,
-          submittedAt: new Date(submittedAt).toLocaleString("en-GB", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          }),
-        })
-      ),
-      sendConfirmationEmail({ name, email, attending, extraGuest1, extraGuest2 }),
+      isGoogleSheetsConfigured()
+        ? ensureSheetHeaders().then(() => appendRSVPToSheet(sheetRow))
+        : Promise.resolve(),
+      sendConfirmationEmail({ name, email, attending, extraGuest1, extraGuest2, extraGuest3 }),
     ])
 
     if (sheetResult.status === "rejected") {

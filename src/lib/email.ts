@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer"
+import { Resend } from "resend"
 import { PARTY_CONFIG } from "./config"
 
 interface ConfirmationEmailData {
@@ -7,6 +8,7 @@ interface ConfirmationEmailData {
   attending: boolean
   extraGuest1?: string
   extraGuest2?: string
+  extraGuest3?: string
 }
 
 function escapeHtml(str: string): string {
@@ -18,27 +20,8 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;")
 }
 
-function createTransport() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST ?? "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  })
-}
-
-export async function sendConfirmationEmail(data: ConfirmationEmailData) {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn("Email not configured — skipping confirmation email")
-    return
-  }
-
-  const transporter = createTransport()
-
-  const guestList = [data.extraGuest1, data.extraGuest2]
+function buildConfirmationEmail(data: ConfirmationEmailData): { html: string; subject: string } {
+  const guestList = [data.extraGuest1, data.extraGuest2, data.extraGuest3]
     .filter(Boolean)
     .map((g) => `• ${escapeHtml(g ?? "")}`)
     .join("\n")
@@ -89,12 +72,64 @@ export async function sendConfirmationEmail(data: ConfirmationEmailData) {
 </body>
 </html>`
 
+  const subject = data.attending
+    ? `You're on the list for ${PARTY_CONFIG.name}! 🎉`
+    : `RSVP received — ${PARTY_CONFIG.name}`
+
+  return { html, subject }
+}
+
+function createSmtpTransport() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST ?? "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  })
+}
+
+/** Default Resend “from” for testing before you add a verified domain. */
+function defaultResendFrom(): string {
+  return `${PARTY_CONFIG.hostName} Party <onboarding@resend.dev>`
+}
+
+export async function sendConfirmationEmail(data: ConfirmationEmailData) {
+  const resendKey = process.env.RESEND_API_KEY?.trim()
+  const smtpUser = process.env.SMTP_USER?.trim()
+  const smtpPass = process.env.SMTP_PASS?.trim()
+
+  if (!resendKey && (!smtpUser || !smtpPass)) {
+    console.warn(
+      "Email not configured — set RESEND_API_KEY (Resend) or SMTP_USER + SMTP_PASS (SMTP); skipping confirmation email"
+    )
+    return
+  }
+
+  const { html, subject } = buildConfirmationEmail(data)
+
+  if (resendKey) {
+    const resend = new Resend(resendKey)
+    const from = process.env.RESEND_FROM?.trim() || defaultResendFrom()
+    const { error } = await resend.emails.send({
+      from,
+      to: data.email,
+      subject,
+      html,
+    })
+    if (error) {
+      throw new Error(error.message)
+    }
+    return
+  }
+
+  const transporter = createSmtpTransport()
   await transporter.sendMail({
-    from: `"${PARTY_CONFIG.hostName}'s Party 🎉" <${process.env.SMTP_USER}>`,
+    from: `"${PARTY_CONFIG.hostName}'s Party 🎉" <${smtpUser}>`,
     to: data.email,
-    subject: data.attending
-      ? `You're on the list for ${PARTY_CONFIG.name}! 🎉`
-      : `RSVP received — ${PARTY_CONFIG.name}`,
+    subject,
     html,
   })
 }

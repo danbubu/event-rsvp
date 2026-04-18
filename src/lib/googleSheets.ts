@@ -6,7 +6,16 @@ export interface RSVPSheetRow {
   attending: boolean
   extraGuest1?: string
   extraGuest2?: string
+  extraGuest3?: string
   submittedAt: string
+}
+
+/** All three must be set; otherwise the RSVP route skips Sheets (Supabase remains primary). */
+export function isGoogleSheetsConfigured(): boolean {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim()
+  const key = process.env.GOOGLE_PRIVATE_KEY?.trim()
+  const sheetId = process.env.GOOGLE_SHEET_ID?.trim()
+  return Boolean(email && key && sheetId)
 }
 
 export async function appendRSVPToSheet(data: RSVPSheetRow) {
@@ -22,7 +31,7 @@ export async function appendRSVPToSheet(data: RSVPSheetRow) {
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: process.env.GOOGLE_SHEET_ID,
-    range: "Sheet1!A:F",
+    range: "Sheet1!A:G",
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [
@@ -32,6 +41,7 @@ export async function appendRSVPToSheet(data: RSVPSheetRow) {
           data.attending ? "Yes ✅" : "No ❌",
           data.extraGuest1 ?? "",
           data.extraGuest2 ?? "",
+          data.extraGuest3 ?? "",
           data.submittedAt,
         ],
       ],
@@ -63,11 +73,19 @@ export async function ensureSheetHeaders() {
   if (!existing.data.values || existing.data.values.length === 0) {
     await sheets.spreadsheets.values.update({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: "Sheet1!A1:F1",
+      range: "Sheet1!A1:G1",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [
-          ["Guest Name", "Email", "Attending", "Extra Guest 1", "Extra Guest 2", "Submitted At"],
+          [
+            "Guest Name",
+            "Email",
+            "Attending",
+            "Extra Guest 1",
+            "Extra Guest 2",
+            "Extra Guest 3",
+            "Submitted At",
+          ],
         ],
       },
     })

@@ -12,7 +12,7 @@ export const PARTY_CONFIG = {
   location: "Somewhere in Kumasi",
   theme: "No Dirty Vibes ✨",
   rsvpDeadline: "April 23rd, 2026",
-  maxExtraGuests: 2, // guests can bring up to 2 extras
+  maxExtraGuests: 3, // guests can bring up to 3 extras
   confirmationEmail: {
     subject: "You're on the list! 🎉",
     greeting: "Hey [name], you're officially on the list!",

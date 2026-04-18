@@ -15,6 +15,7 @@ const schema = z.object({
   attending: z.enum(["yes", "no"] as [string, ...string[]]),
   extraGuest1: z.string().optional(),
   extraGuest2: z.string().optional(),
+  extraGuest3: z.string().optional(),
   website: z.string().optional(),
 })
 
@@ -257,16 +258,24 @@ export default function RSVPPage() {
   const watchedEmail = watch("email")
   const watchedExtraGuest1 = watch("extraGuest1")
   const watchedExtraGuest2 = watch("extraGuest2")
+  const watchedExtraGuest3 = watch("extraGuest3")
 
   useEffect(() => {
     if (guestCount === 0) {
       setValue("extraGuest1", "")
       setValue("extraGuest2", "")
+      setValue("extraGuest3", "")
       return
     }
 
     if (guestCount === 1) {
       setValue("extraGuest2", "")
+      setValue("extraGuest3", "")
+      return
+    }
+
+    if (guestCount === 2) {
+      setValue("extraGuest3", "")
     }
   }, [guestCount, setValue])
 
@@ -284,6 +293,7 @@ export default function RSVPPage() {
           attending: data.attending === "yes",
           extraGuest1: data.extraGuest1 || undefined,
           extraGuest2: data.extraGuest2 || undefined,
+          extraGuest3: data.extraGuest3 || undefined,
           website: data.website || undefined,
         }),
       })
@@ -447,7 +457,7 @@ export default function RSVPPage() {
                 <div className="guest-count-row segmented">
                   <div className="segment-track">
                     <span className="segment-indicator" style={{ transform: `translateX(${guestCount * 100}%)` }} />
-                    {[0, 1, 2].map((n) => (
+                    {[0, 1, 2, 3].map((n) => (
                       <button
                         key={n}
                         type="button"
@@ -483,6 +493,18 @@ export default function RSVPPage() {
                       {...register("extraGuest2")}
                     />
                     <label htmlFor="rsvp-extra-guest-2" className="field-label">Extra Guest 2 — Full Name</label>
+                  </div>
+                </div>
+                <div className={`guest-fields-wrap ${guestCount >= 3 ? "open" : ""}`}>
+                  <div className={`field-group floating-field ${watchedExtraGuest3 ? "has-value" : ""}`}>
+                    <input
+                      id="rsvp-extra-guest-3"
+                      type="text"
+                      placeholder=" "
+                      className="field-input"
+                      {...register("extraGuest3")}
+                    />
+                    <label htmlFor="rsvp-extra-guest-3" className="field-label">Extra Guest 3 — Full Name</label>
                   </div>
                 </div>
               </div>
