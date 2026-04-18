@@ -6,9 +6,8 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
-  title: "Event RSVP Manager",
-  description: "Professional Event RSVP Management System",
-  generator: "v0.app",
+  title: "Birthday Celebration Party — RSVP",
+  description: "You're invited! RSVP for Mary-Ann's Birthday Celebration Party on Friday, 25th April 2026 in Kumasi.",
 }
 
 export default function RootLayout({

@@ -5,7 +5,18 @@ import jwt from "jsonwebtoken"
 import { NextRequest } from "next/server"
 import { executeQuery } from "./database"
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret"
+function getJwtSecret(): string {
+  const fromEnv = process.env.JWT_SECRET
+  if (fromEnv && fromEnv.length > 0) {
+    return fromEnv
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "JWT_SECRET is not set. Add it in Vercel (or your host) environment variables before using auth.",
+    )
+  }
+  return "dev-only-jwt-secret-not-for-production"
+}
 
 export interface User {
   id: number
@@ -31,14 +42,14 @@ export function generateToken(user: User): string {
       email: user.email,
       role: user.role,
     },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: "7d" },
   )
 }
 
 export function verifyToken(token: string): any {
   try {
-    return jwt.verify(token, JWT_SECRET)
+    return jwt.verify(token, getJwtSecret())
   } catch (error) {
     return null
   }

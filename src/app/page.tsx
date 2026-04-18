@@ -1,681 +1,589 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useAuth } from "@/hooks/use-auth"
-import { Navbar } from "@/components/navbar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarDays, Users, UserCheck, BarChart3, Plus, TrendingUp, ArrowRight, CheckCircle, Star, Heart, Building, GraduationCap, PartyPopper, Briefcase, ChevronDown, ChevronUp } from "lucide-react"
-import Link from "next/link"
-import type { DashboardStats } from "@/lib/analytics"
+import { useState, useEffect, useRef } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import confetti from "canvas-confetti"
+import { PARTY_CONFIG } from "@/lib/config"
+import "./rsvp.css"
 
-// Landing Page Component for non-authenticated users
-function LandingPage() {
-  const [activeStep, setActiveStep] = useState(1)
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
+// ─── Schema ────────────────────────────────────────────────────
+const schema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email"),
+  attending: z.enum(["yes", "no"] as [string, ...string[]]),
+  extraGuest1: z.string().optional(),
+  extraGuest2: z.string().optional(),
+  website: z.string().optional(),
+})
 
-  // Hero Section
-  const HeroSection = () => (
-    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background/95 to-primary/5 overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
-      
-      <div className="container mx-auto px-4 py-20 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="mb-6 inline-flex items-center px-4 py-2 bg-primary/10 rounded-full text-sm font-medium text-primary animate-fade-in">
-            <Star className="w-4 h-4 mr-2" />
-            Trusted by 10,000+ Event Organizers
-          </div>
-          
-          <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent mb-6 animate-fade-in-up">
-            Effortless Event
-            <br />
-            <span className="text-primary">Management</span>
-          </h1>
-          
-          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-fade-in-up delay-200">
-            Create stunning events, track RSVPs in real-time, and analyze your success with our professional event management platform.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-fade-in-up delay-300">
-            <Link href="/auth/register">
-              <Button size="lg" className="text-lg px-8 py-6 group">
-                Start Free Trial
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            <Link href="/auth/login">
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                Sign In
-              </Button>
-            </Link>
-          </div>
-          
-          {/* Hero Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto animate-fade-in-up delay-500">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-1">50K+</div>
-              <div className="text-sm text-muted-foreground">Events Created</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-1">2M+</div>
-              <div className="text-sm text-muted-foreground">RSVPs Tracked</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-1">99.9%</div>
-              <div className="text-sm text-muted-foreground">Uptime</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-1">24/7</div>
-              <div className="text-sm text-muted-foreground">Support</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
+type FormData = z.infer<typeof schema>
+type SubmitState = "idle" | "loading" | "success" | "error"
 
-  // How It Works Section
-  const HowItWorksSection = () => {
-    const steps = [
-      {
-        number: 1,
-        title: "Create Your Event",
-        description: "Set up your event with all the details - date, time, location, and description.",
-        icon: CalendarDays
-      },
-      {
-        number: 2,
-        title: "Invite Guests",
-        description: "Send beautiful invitations via email or share your custom RSVP link.",
-        icon: Users
-      },
-      {
-        number: 3,
-        title: "Track Responses",
-        description: "Monitor RSVPs in real-time with detailed guest management tools.",
-        icon: UserCheck
-      },
-      {
-        number: 4,
-        title: "Analyze Results",
-        description: "Get insights with comprehensive analytics and export detailed reports.",
-        icon: BarChart3
+// ─── Icons ─────────────────────────────────────────────────────
+const CalendarIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+)
+const ClockIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+  </svg>
+)
+const MapPinIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+  </svg>
+)
+const SparkleIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z" />
+  </svg>
+)
+const UserPlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />
+  </svg>
+)
+
+function formatGoogleDate(value: string) {
+  return new Date(value).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")
+}
+
+function createGoogleCalendarLink() {
+  const url = new URL("https://calendar.google.com/calendar/render")
+  url.searchParams.set("action", "TEMPLATE")
+  url.searchParams.set("text", PARTY_CONFIG.name)
+  url.searchParams.set("dates", `${formatGoogleDate(PARTY_CONFIG.startsAtISO)}/${formatGoogleDate(PARTY_CONFIG.endsAtISO)}`)
+  url.searchParams.set("location", PARTY_CONFIG.location)
+  url.searchParams.set("details", `Hosted by ${PARTY_CONFIG.hostName}. Theme: ${PARTY_CONFIG.theme}`)
+  return url.toString()
+}
+
+function getCountdownParts(targetISO: string) {
+  const now = Date.now()
+  const target = new Date(targetISO).getTime()
+  const delta = Math.max(target - now, 0)
+  const days = Math.floor(delta / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((delta / (1000 * 60 * 60)) % 24)
+  const minutes = Math.floor((delta / (1000 * 60)) % 60)
+  const seconds = Math.floor((delta / 1000) % 60)
+  return { days, hours, minutes, seconds }
+}
+
+function playConfettiBurstSound() {
+  const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AudioContextClass) return
+
+  const ctx = new AudioContextClass()
+  const master = ctx.createGain()
+  master.gain.value = 0.07
+  master.connect(ctx.destination)
+
+  const now = ctx.currentTime
+  const freqs = [880, 1174, 1320, 1568]
+
+  freqs.forEach((freq, i) => {
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = i % 2 === 0 ? "triangle" : "sine"
+    osc.frequency.setValueAtTime(freq, now + i * 0.03)
+    gain.gain.setValueAtTime(0.0001, now + i * 0.03)
+    gain.gain.exponentialRampToValueAtTime(0.15, now + i * 0.05)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26 + i * 0.03)
+    osc.connect(gain)
+    gain.connect(master)
+    osc.start(now + i * 0.03)
+    osc.stop(now + 0.29 + i * 0.03)
+  })
+
+  window.setTimeout(() => {
+    void ctx.close()
+  }, 700)
+}
+
+// ─── Main Component ────────────────────────────────────────────
+export default function RSVPPage() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [submitState, setSubmitState] = useState<SubmitState>("idle")
+  const [errorMsg, setErrorMsg] = useState("")
+  const [guestCount, setGuestCount] = useState(0)
+  const [attending, setAttending] = useState<"yes" | "no" | null>(null)
+  const [theme, setTheme] = useState<"dark" | "light">("dark")
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+
+  useEffect(() => {
+    const saved = localStorage.getItem("rsvp-theme") as "dark" | "light" | null
+    const initial = saved ?? "dark"
+    setTheme(initial)
+    document.documentElement.setAttribute("data-theme", initial)
+  }, [])
+
+  useEffect(() => {
+    setCountdown(getCountdownParts(PARTY_CONFIG.startsAtISO))
+    const timer = window.setInterval(() => {
+      setCountdown(getCountdownParts(PARTY_CONFIG.startsAtISO))
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    let raf = 0
+    const particles: Array<{
+      x: number
+      y: number
+      size: number
+      speedY: number
+      driftSeed: number
+      rotation: number
+      rotationSpeed: number
+      color: string
+      type: "dot" | "rect" | "sparkle"
+    }> = []
+
+    const palette = ["#7C3AED", "#DB2777", "#F59E0B", "#FFFFFF"]
+    const rand = (min: number, max: number) => Math.random() * (max - min) + min
+
+    const resize = () => {
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = window.innerWidth * dpr
+      canvas.height = window.innerHeight * dpr
+      canvas.style.width = `${window.innerWidth}px`
+      canvas.style.height = `${window.innerHeight}px`
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    }
+
+    const seedParticles = () => {
+      particles.length = 0
+      const count = Math.min(90, Math.floor(window.innerWidth / 14))
+      for (let i = 0; i < count; i++) {
+        const roll = Math.random()
+        particles.push({
+          x: rand(0, window.innerWidth),
+          y: rand(0, window.innerHeight),
+          size: roll > 0.86 ? rand(3.6, 5.4) : rand(1.6, 3.3),
+          speedY: rand(0.22, 0.52),
+          driftSeed: rand(0.6, 1.4),
+          rotation: rand(0, Math.PI * 2),
+          rotationSpeed: rand(-0.02, 0.02),
+          color: palette[Math.floor(Math.random() * palette.length)] ?? "#7C3AED",
+          type: roll > 0.83 ? "sparkle" : roll > 0.5 ? "rect" : "dot",
+        })
       }
-    ]
+    }
 
-    return (
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">How It Works</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Get started in minutes with our intuitive 4-step process
-            </p>
-          </div>
-          
-          <div className="max-w-6xl mx-auto">
-            <div className="grid md:grid-cols-4 gap-8">
-              {steps.map((step, index) => {
-                const Icon = step.icon
-                const isActive = activeStep === step.number
-                
-                return (
-                  <div
-                    key={step.number}
-                    className={`relative group cursor-pointer transition-all duration-300 ${
-                      isActive ? 'scale-105' : 'hover:scale-105'
-                    }`}
-                    onMouseEnter={() => setActiveStep(step.number)}
-                  >
-                    <Card className={`h-full transition-all duration-300 ${
-                      isActive ? 'shadow-lg border-primary/50 bg-primary/5' : 'hover:shadow-md'
-                    }`}>
-                      <CardContent className="p-8 text-center">
-                        <div className={`w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center transition-all duration-300 ${
-                          isActive ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
-                        }`}>
-                          <Icon className="h-8 w-8" />
-                        </div>
-                        
-                        <div className={`text-sm font-bold mb-2 transition-colors ${
-                          isActive ? 'text-primary' : 'text-muted-foreground'
-                        }`}>
-                          Step {step.number}
-                        </div>
-                        
-                        <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
-                        <p className="text-muted-foreground">{step.description}</p>
-                      </CardContent>
-                    </Card>
-                    
-                    {index < steps.length - 1 && (
-                      <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-8 z-10">
-                        <ArrowRight className="w-6 h-6 text-primary/60" />
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      </section>
-    )
+    const draw = (t: number) => {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
+      const wind = Math.sin(t * 0.00055) * 0.36
+
+      for (const p of particles) {
+        p.y += p.speedY
+        p.x += wind + Math.sin((p.y + t * 0.02) * 0.01) * 0.18 * p.driftSeed
+        p.rotation += p.rotationSpeed
+
+        if (p.y > window.innerHeight + 20) {
+          p.y = -20
+          p.x = rand(0, window.innerWidth)
+        }
+        if (p.x < -20) p.x = window.innerWidth + 20
+        if (p.x > window.innerWidth + 20) p.x = -20
+
+        ctx.save()
+        ctx.translate(p.x, p.y)
+        ctx.rotate(p.rotation)
+        ctx.fillStyle = p.color
+        ctx.globalAlpha = p.type === "sparkle" ? 0.8 : 0.62
+
+        if (p.type === "dot") {
+          ctx.beginPath()
+          ctx.arc(0, 0, p.size * 0.42, 0, Math.PI * 2)
+          ctx.fill()
+        } else if (p.type === "rect") {
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6)
+        } else {
+          ctx.beginPath()
+          ctx.moveTo(0, -p.size)
+          ctx.lineTo(p.size * 0.36, 0)
+          ctx.lineTo(0, p.size)
+          ctx.lineTo(-p.size * 0.36, 0)
+          ctx.closePath()
+          ctx.fill()
+        }
+        ctx.restore()
+      }
+
+      raf = window.requestAnimationFrame(draw)
+    }
+
+    resize()
+    seedParticles()
+    raf = window.requestAnimationFrame(draw)
+    window.addEventListener("resize", resize)
+
+    return () => {
+      window.cancelAnimationFrame(raf)
+      window.removeEventListener("resize", resize)
+    }
+  }, [])
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark"
+    setTheme(next)
+    document.documentElement.setAttribute("data-theme", next)
+    localStorage.setItem("rsvp-theme", next)
   }
 
-  // Feature Deep Dive Section
-  const FeatureDeepDiveSection = () => {
-    const features = [
-      {
-        icon: CalendarDays,
-        title: "Smart Event Management",
-        description: "Create unlimited events with rich customization options, recurring events, and automated reminders.",
-        highlights: ["Unlimited events", "Custom branding", "Automated reminders", "Recurring events"]
-      },
-      {
-        icon: UserCheck,
-        title: "Advanced RSVP Tracking",
-        description: "Real-time response tracking with yes/no/maybe options, dietary preferences, and plus-one management.",
-        highlights: ["Real-time tracking", "Dietary preferences", "Plus-one support", "Custom questions"]
-      },
-      {
-        icon: Users,
-        title: "Comprehensive Guest Management",
-        description: "Manage both registered users and guest attendees with advanced segmentation and communication tools.",
-        highlights: ["Guest segmentation", "Bulk messaging", "Contact import", "Guest profiles"]
-      },
-      {
-        icon: BarChart3,
-        title: "Powerful Analytics & Reports",
-        description: "Gain insights with detailed analytics, export capabilities, and custom report generation.",
-        highlights: ["Real-time analytics", "Export to PDF/Excel", "Custom reports", "Response trends"]
-      }
-    ]
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  })
 
-    return (
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Powerful Features</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to manage successful events, all in one platform
-            </p>
-          </div>
-          
-          <div className="grid lg:grid-cols-2 gap-12 max-w-7xl mx-auto">
-            {features.map((feature, index) => {
-              const Icon = feature.icon
-              
-              return (
-                <Card key={index} className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
-                  <CardContent className="p-8">
-                    <div className="flex items-start gap-6">
-                      <div className="flex-shrink-0">
-                        <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          <Icon className="h-8 w-8 text-primary-foreground" />
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-semibold mb-3">{feature.title}</h3>
-                        <p className="text-muted-foreground mb-4 leading-relaxed">{feature.description}</p>
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                          {feature.highlights.map((highlight, hIndex) => (
-                            <div key={hIndex} className="flex items-center gap-2 text-sm">
-                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                              <span>{highlight}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-    )
+  const watchedAttending = watch("attending")
+  const watchedName = watch("name")
+  const watchedEmail = watch("email")
+  const watchedExtraGuest1 = watch("extraGuest1")
+  const watchedExtraGuest2 = watch("extraGuest2")
+
+  useEffect(() => {
+    if (guestCount === 0) {
+      setValue("extraGuest1", "")
+      setValue("extraGuest2", "")
+      return
+    }
+
+    if (guestCount === 1) {
+      setValue("extraGuest2", "")
+    }
+  }, [guestCount, setValue])
+
+  const onSubmit = async (data: FormData) => {
+    setSubmitState("loading")
+    setErrorMsg("")
+
+    try {
+      const res = await fetch("/api/rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          attending: data.attending === "yes",
+          extraGuest1: data.extraGuest1 || undefined,
+          extraGuest2: data.extraGuest2 || undefined,
+          website: data.website || undefined,
+        }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) {
+        setErrorMsg(json.error || "Something went wrong. Please try again.")
+        setSubmitState("error")
+        return
+      }
+      setSubmitState("success")
+    } catch {
+      setErrorMsg("Network error. Please check your connection and try again.")
+      setSubmitState("error")
+    }
   }
 
-  // Use Cases Section
-  const UseCasesSection = () => {
-    const useCases = [
-      {
-        icon: Building,
-        title: "Corporate Events",
-        description: "Team meetings, conferences, and company celebrations",
-        color: "from-blue-500 to-blue-600"
-      },
-      {
-        icon: Heart,
-        title: "Weddings",
-        description: "Beautiful wedding planning with guest management",
-        color: "from-pink-500 to-pink-600"
-      },
-      {
-        icon: GraduationCap,
-        title: "Conferences",
-        description: "Professional conferences and educational seminars",
-        color: "from-purple-500 to-purple-600"
-      },
-      {
-        icon: PartyPopper,
-        title: "Birthday Parties",
-        description: "Personal celebrations and milestone events",
-        color: "from-yellow-500 to-yellow-600"
-      },
-      {
-        icon: Briefcase,
-        title: "Workshops",
-        description: "Training sessions and professional workshops",
-        color: "from-green-500 to-green-600"
-      },
-      {
-        icon: Users,
-        title: "Social Gatherings",
-        description: "Community events and social meetups",
-        color: "from-indigo-500 to-indigo-600"
-      }
-    ]
-
-    return (
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Perfect for Any Event</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              From intimate gatherings to large-scale conferences, our platform adapts to your needs
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {useCases.map((useCase, index) => {
-              const Icon = useCase.icon
-              
-              return (
-                <Card key={index} className="group hover:shadow-lg transition-all duration-300 overflow-hidden border-0">
-                  <CardContent className="p-6">
-                    <div className="text-center">
-                      <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${useCase.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                        <Icon className="h-8 w-8 text-white" />
-                      </div>
-                      
-                      <h3 className="text-xl font-semibold mb-2">{useCase.title}</h3>
-                      <p className="text-muted-foreground">{useCase.description}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-    )
+  if (submitState === "success") {
+    return <SuccessScreen attending={watchedAttending === "yes"} name={watchedName ?? ""} />
   }
-
-  // FAQ Section
-  const FAQSection = () => {
-    const faqs = [
-      {
-        question: "How many events can I create?",
-        answer: "Our free plan allows up to 3 events per month. Pro and Enterprise plans offer unlimited events with additional features like custom branding and advanced analytics."
-      },
-      {
-        question: "Is there a limit on the number of guests?",
-        answer: "Free plan supports up to 100 guests per event. Pro plan supports up to 1,000 guests, and Enterprise plan offers unlimited guests with premium support."
-      },
-      {
-        question: "Can I customize the RSVP forms?",
-        answer: "Yes! You can add custom questions, collect dietary preferences, manage plus-ones, and fully customize the look and feel of your RSVP forms."
-      },
-      {
-        question: "What integrations are available?",
-        answer: "We integrate with Google Calendar, Outlook, Mailchimp, Zoom, and many other popular tools. API access is available for Enterprise customers."
-      },
-      {
-        question: "Is my data secure?",
-        answer: "Absolutely. We use enterprise-grade security with SSL encryption, regular backups, and GDPR compliance. Your data is safe and private."
-      },
-      {
-        question: "Can I export my event data?",
-        answer: "Yes, you can export guest lists, RSVP responses, and analytics in multiple formats including CSV, Excel, and PDF reports."
-      },
-      {
-        question: "Do you offer customer support?",
-        answer: "We provide email support for all users, with priority support for Pro customers and dedicated support for Enterprise clients."
-      },
-      {
-        question: "Can I cancel my subscription anytime?",
-        answer: "Yes, you can cancel your subscription at any time. No long-term contracts or cancellation fees. Your data remains accessible even after cancellation."
-      }
-    ]
-
-    return (
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Frequently Asked Questions</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to know about our event management platform
-            </p>
-          </div>
-          
-          <div className="max-w-3xl mx-auto">
-            <div className="space-y-4">
-              {faqs.map((faq, index) => (
-                <Card key={index} className="overflow-hidden">
-                  <CardContent className="p-0">
-                    <button
-                      className="w-full p-6 text-left flex justify-between items-center hover:bg-muted/50 transition-colors"
-                      onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
-                    >
-                      <h3 className="text-lg font-semibold pr-4">{faq.question}</h3>
-                      {expandedFaq === index ? (
-                        <ChevronUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                      )}
-                    </button>
-                    
-                    {expandedFaq === index && (
-                      <div className="px-6 pb-6">
-                        <p className="text-muted-foreground leading-relaxed">{faq.answer}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-    )
-  }
-
-  // Final CTA Section
-  const FinalCTASection = () => (
-    <section className="py-20 bg-gradient-to-r from-primary to-primary/90">
-      <div className="container mx-auto px-4 text-center">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-4xl font-bold text-primary-foreground mb-4">
-            Ready to Transform Your Events?
-          </h2>
-          <p className="text-xl text-primary-foreground/90 mb-8">
-            Join thousands of event organizers who trust our platform for their most important events.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/register">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
-                Start Your Free Trial
-              </Button>
-            </Link>
-            <Link href="/auth/login">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10">
-                Sign In
-              </Button>
-            </Link>
-          </div>
-          
-          <p className="text-sm text-primary-foreground/80 mt-6">
-            No credit card required • 14-day free trial • Cancel anytime
-          </p>
-        </div>
-      </div>
-    </section>
-  )
 
   return (
-    <div className="min-h-screen bg-background">
-      <style jsx global>{`
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.8s ease-out;
-        }
-        
-        .animate-fade-in-up {
-          animation: fade-in-up 0.8s ease-out;
-        }
-        
-        .delay-200 {
-          animation-delay: 0.2s;
-          animation-fill-mode: both;
-        }
-        
-        .delay-300 {
-          animation-delay: 0.3s;
-          animation-fill-mode: both;
-        }
-        
-        .delay-500 {
-          animation-delay: 0.5s;
-          animation-fill-mode: both;
-        }
-        
-        .delay-1000 {
-          animation-delay: 1s;
-        }
-      `}</style>
-      
-      <HeroSection />
-      <HowItWorksSection />
-      <FeatureDeepDiveSection />
-      <UseCasesSection />
-      <FAQSection />
-      <FinalCTASection />
+    <main className="rsvp-root rsvp-theme">
+      <div className="top-shimmer" />
+      <div className="aurora" aria-hidden="true" />
+      <canvas ref={canvasRef} className="hero-canvas" aria-hidden="true" />
+      {/* Theme Toggle */}
+      <button
+        id="theme-toggle-btn"
+        className="theme-toggle"
+        onClick={toggleTheme}
+        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      >
+        <span className={`toggle-icon ${theme === "dark" ? "sun" : "moon"}`}>{theme === "dark" ? "☀️" : "🌙"}</span>
+      </button>
+
+      <div className="rsvp-container">
+        {/* Hero Card */}
+        <div className="hero-card">
+          <div className="card-celebration-emoji" aria-hidden="true">
+            🎉
+          </div>
+          <h1 className="hero-title">{PARTY_CONFIG.name}</h1>
+          <p className="hero-host">
+            <span className="hero-host-label">Hosted by</span>
+            <span className="hero-host-name">{PARTY_CONFIG.hostName}</span>
+          </p>
+
+          <div className="event-details">
+            <div className="detail-item detail-date">
+              <CalendarIcon />
+              <span>{PARTY_CONFIG.date}</span>
+            </div>
+            <div className="detail-item detail-time">
+              <ClockIcon />
+              <span>{PARTY_CONFIG.time}</span>
+            </div>
+            <div className="detail-item detail-location">
+              <MapPinIcon />
+              <span>{PARTY_CONFIG.location}</span>
+            </div>
+            <div className="detail-vibe">
+              <SparkleIcon />
+              <span>{PARTY_CONFIG.theme}</span>
+            </div>
+          </div>
+
+          <div className="deadline-wrap">
+            <span className="deadline-ring" />
+            <div className="deadline-badge">RSVP by {PARTY_CONFIG.rsvpDeadline}</div>
+          </div>
+        </div>
+
+        <section className="countdown-card" aria-live="polite">
+          <p className="countdown-label">Party starts in</p>
+          <div className="countdown-grid">
+            <CountdownBlock value={countdown.days} label="Days" />
+            <span className="countdown-sep">:</span>
+            <CountdownBlock value={countdown.hours} label="Hours" />
+            <span className="countdown-sep">:</span>
+            <CountdownBlock value={countdown.minutes} label="Minutes" />
+            <span className="countdown-sep">:</span>
+            <CountdownBlock value={countdown.seconds} label="Seconds" />
+          </div>
+        </section>
+
+        {/* RSVP Form Card */}
+        <div className="form-card">
+          <h2 className="form-title">Will you be there?</h2>
+          <p className="form-subtitle">Let us know so we can plan accordingly 🥂</p>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="rsvp-form" id="rsvp-form" noValidate>
+            {/* Name */}
+            <div className={`field-group floating-field ${watchedName ? "has-value" : ""}`}>
+              <input
+                id="rsvp-name"
+                type="text"
+                placeholder=" "
+                className={`field-input ${errors.name ? "field-error" : ""}`}
+                {...register("name")}
+              />
+              <label htmlFor="rsvp-name" className="field-label">Your Name</label>
+              {errors.name && <span className="error-msg">{errors.name.message}</span>}
+            </div>
+
+            {/* Email */}
+            <div className={`field-group floating-field ${watchedEmail ? "has-value" : ""}`}>
+              <input
+                id="rsvp-email"
+                type="email"
+                placeholder=" "
+                className={`field-input ${errors.email ? "field-error" : ""}`}
+                {...register("email")}
+              />
+              <label htmlFor="rsvp-email" className="field-label">Email Address</label>
+              {errors.email && <span className="error-msg">{errors.email.message}</span>}
+            </div>
+
+            {/* Attending */}
+            <div className="field-group">
+              <label className="field-label">Are you coming?</label>
+              <div className="attend-buttons">
+                <button
+                  type="button"
+                  id="rsvp-attending-yes"
+                  className={`attend-btn attend-yes ${attending === "yes" ? "active" : ""}`}
+                  onClick={() => {
+                    setAttending("yes")
+                    setValue("attending", "yes", { shouldValidate: true })
+                  }}
+                >
+                  <span>🥳</span> Absolutely Yes!
+                </button>
+                <button
+                  type="button"
+                  id="rsvp-attending-no"
+                  className={`attend-btn attend-no ${attending === "no" ? "active" : ""}`}
+                  onClick={() => {
+                    setAttending("no")
+                    setValue("attending", "no", { shouldValidate: true })
+                    setGuestCount(0)
+                  }}
+                >
+                  <span>😔</span> Can&apos;t Make It
+                </button>
+              </div>
+              <input type="hidden" {...register("attending")} />
+              {errors.attending && <span className="error-msg">{errors.attending.message}</span>}
+            </div>
+
+            {/* Extra guests — only shown if attending */}
+            {attending === "yes" && (
+              <div className="guest-section">
+                <div className="guest-section-header">
+                  <UserPlusIcon />
+                  <span>Bringing anyone?</span>
+                </div>
+                <p className="guest-section-sub">You can bring up to {PARTY_CONFIG.maxExtraGuests} extra guests. Name them below!</p>
+
+                <div className="guest-count-row segmented">
+                  <div className="segment-track">
+                    <span className="segment-indicator" style={{ transform: `translateX(${guestCount * 100}%)` }} />
+                    {[0, 1, 2].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        id={`rsvp-guest-count-${n}`}
+                        className={`guest-count-btn ${guestCount === n ? "active" : ""}`}
+                        onClick={() => setGuestCount(n)}
+                      >
+                        {n === 0 ? "Just me" : `+${n}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={`guest-fields-wrap ${guestCount >= 1 ? "open" : ""}`}>
+                  <div className={`field-group floating-field ${watchedExtraGuest1 ? "has-value" : ""}`}>
+                    <input
+                      id="rsvp-extra-guest-1"
+                      type="text"
+                      placeholder=" "
+                      className="field-input"
+                      {...register("extraGuest1")}
+                    />
+                    <label htmlFor="rsvp-extra-guest-1" className="field-label">Extra Guest 1 — Full Name</label>
+                  </div>
+                </div>
+                <div className={`guest-fields-wrap ${guestCount >= 2 ? "open" : ""}`}>
+                  <div className={`field-group floating-field ${watchedExtraGuest2 ? "has-value" : ""}`}>
+                    <input
+                      id="rsvp-extra-guest-2"
+                      type="text"
+                      placeholder=" "
+                      className="field-input"
+                      {...register("extraGuest2")}
+                    />
+                    <label htmlFor="rsvp-extra-guest-2" className="field-label">Extra Guest 2 — Full Name</label>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Error banner */}
+            {submitState === "error" && (
+              <div className="error-banner" role="alert">
+                ⚠️ {errorMsg}
+              </div>
+            )}
+
+            {/* Submit */}
+            <input
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              style={{ display: "none" }}
+              {...register("website")}
+            />
+            <button
+              type="submit"
+              id="rsvp-submit-btn"
+              className="submit-btn"
+              disabled={submitState === "loading"}
+            >
+              {submitState === "loading" ? (
+                <>
+                  <span className="spinner" aria-label="Sending..." />
+                  Sending...
+                </>
+              ) : (
+                "Send My RSVP 🪅"
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+function CountdownBlock({ value, label }: { value: number; label: string }) {
+  const valueRef = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    const el = valueRef.current
+    if (!el) return
+    el.style.animation = "none"
+    void el.offsetHeight
+    el.style.removeProperty("animation")
+  }, [value])
+  return (
+    <div className="countdown-block">
+      <span ref={valueRef} className="countdown-value">
+        {String(value).padStart(2, "0")}
+      </span>
+      <span className="countdown-key">{label}</span>
     </div>
   )
 }
 
-export default function HomePage() {
-  const { user, loading } = useAuth()
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
-  const [statsLoading, setStatsLoading] = useState(true)
-
+// ─── Success Screen ─────────────────────────────────────────────
+function SuccessScreen({ attending, name }: { attending: boolean; name: string }) {
   useEffect(() => {
-    if (user) {
-      fetchDashboardStats()
-    }
-  }, [user])
+    playConfettiBurstSound()
+    void confetti({
+      particleCount: 120,
+      spread: 60,
+      origin: { x: 0.1, y: 1 },
+      colors: ["#7C3AED", "#DB2777", "#F59E0B", "#FFFFFF"],
+    })
+    void confetti({
+      particleCount: 120,
+      spread: 60,
+      origin: { x: 0.9, y: 1 },
+      colors: ["#7C3AED", "#DB2777", "#F59E0B", "#FFFFFF"],
+    })
+  }, [])
 
-  const fetchDashboardStats = async () => {
-    try {
-      const response = await fetch("/api/analytics/dashboard")
-      if (response.ok) {
-        const data = await response.json()
-        setDashboardStats(data.stats)
-      }
-    } catch (error) {
-      console.error("Error fetching dashboard stats:", error)
-    } finally {
-      setStatsLoading(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <LandingPage />
-    )
-  }
+  const firstName = name.trim().split(" ")[0] || "friend"
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
-            <p className="text-muted-foreground">
-              Welcome back, {user.name}! Heres an overview of your events and RSVPs
-            </p>
-          </div>
-          <Link href="/events/create">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Event
-            </Button>
-          </Link>
+    <main className="rsvp-root rsvp-theme">
+      <div className="top-shimmer" />
+      <div className="aurora" aria-hidden="true" />
+      <div className="success-card">
+        <div className="success-emoji">🎉</div>
+        <h1 className="success-title">{attending ? "You're on the list!" : "You'll be missed 💜"}</h1>
+        <p className="success-body">
+          {attending
+            ? "Mary-Ann can't wait to see you. Get ready to party 🔥"
+            : "Mary-Ann hopes to see you next time. Thanks for sending your RSVP with love."}
+        </p>
+        <div className="success-vibe">We&apos;ve got you down, {firstName}.</div>
+        <div className="success-actions">
+          <a href={createGoogleCalendarLink()} target="_blank" rel="noreferrer" className="calendar-link">
+            Add to Calendar
+          </a>
         </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Events</p>
-                  <div className="text-2xl font-bold">
-                    {statsLoading ? (
-                      <div className="animate-pulse bg-muted h-8 w-12 rounded"></div>
-                    ) : (
-                      dashboardStats?.totalEvents || 0
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{dashboardStats?.upcomingEvents || 0} upcoming</p>
-                </div>
-                <CalendarDays className="h-8 w-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Responses</p>
-                  <div className="text-2xl font-bold">
-                    {statsLoading ? (
-                      <div className="animate-pulse bg-muted h-8 w-12 rounded"></div>
-                    ) : (
-                      (dashboardStats?.totalRSVPs || 0) + (dashboardStats?.totalGuests || 0)
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {dashboardStats?.totalRSVPs || 0} users, {dashboardStats?.totalGuests || 0} guests
-                  </p>
-                </div>
-                <UserCheck className="h-8 w-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Confirmed Attending</p>
-                  <div className="text-2xl font-bold">
-                    {statsLoading ? (
-                      <div className="animate-pulse bg-muted h-8 w-12 rounded"></div>
-                    ) : (
-                      dashboardStats?.totalAttending || 0
-                    )}
-                  </div>
-                  <p className="text-xs text-green-600 mt-1">{dashboardStats?.responseRate || 0}% response rate</p>
-                </div>
-                <Users className="h-8 w-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Response Rate</p>
-                  <div className="text-2xl font-bold">
-                    {statsLoading ? (
-                      <div className="animate-pulse bg-muted h-8 w-12 rounded"></div>
-                    ) : (
-                      `${dashboardStats?.responseRate || 0}%`
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Across all events</p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarDays className="h-5 w-5 text-primary" />
-                My Events
-              </CardTitle>
-              <CardDescription>View and manage your created events</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/events">
-                <Button className="w-full">View Events</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-primary" />
-                RSVP Responses
-              </CardTitle>
-              <CardDescription>Track attendee responses and confirmations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/events">
-                <Button className="w-full">Manage RSVPs</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                Analytics
-              </CardTitle>
-              <CardDescription>View detailed reports and statistics</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/analytics">
-                <Button className="w-full">View Analytics</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   )
 }
