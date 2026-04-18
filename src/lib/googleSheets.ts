@@ -1,5 +1,16 @@
 import { google } from "googleapis"
 
+/**
+ * Google APIs expect only the spreadsheet ID (between /d/ and /edit in the URL).
+ * Accepts either the bare ID or a full docs.google.com link so Vercel env is forgiving.
+ */
+function getSpreadsheetId(): string {
+  const raw = process.env.GOOGLE_SHEET_ID?.trim() ?? ""
+  const fromUrl = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)
+  if (fromUrl?.[1]) return fromUrl[1]
+  return raw
+}
+
 export interface RSVPSheetRow {
   guestName: string
   email: string
@@ -30,7 +41,7 @@ export async function appendRSVPToSheet(data: RSVPSheetRow) {
   const sheets = google.sheets({ version: "v4", auth })
 
   await sheets.spreadsheets.values.append({
-    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    spreadsheetId: getSpreadsheetId(),
     range: "Sheet1!A:G",
     valueInputOption: "USER_ENTERED",
     requestBody: {
@@ -65,14 +76,14 @@ export async function ensureSheetHeaders() {
   const sheets = google.sheets({ version: "v4", auth })
 
   const existing = await sheets.spreadsheets.values.get({
-    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    spreadsheetId: getSpreadsheetId(),
     range: "Sheet1!A1",
   })
 
   // Only write headers if row 1 is empty
   if (!existing.data.values || existing.data.values.length === 0) {
     await sheets.spreadsheets.values.update({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       range: "Sheet1!A1:G1",
       valueInputOption: "USER_ENTERED",
       requestBody: {
