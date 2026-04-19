@@ -67,27 +67,23 @@ export async function POST(request: NextRequest) {
 
     const submittedAt = new Date().toISOString()
 
-    // 1. Save to Supabase (primary store)
+    // 1. Save to Supabase (primary store) — upsert on email so guests can change their RSVP later
     const supabase = getSupabaseServiceClient()
-    const { error: dbError } = await supabase.from("rsvps").insert({
-      name,
-      email,
-      attending,
-      extra_guest_1: extraGuest1 ?? null,
-      extra_guest_2: extraGuest2 ?? null,
-      extra_guest_3: extraGuest3 ?? null,
-      submitted_at: submittedAt,
-    })
+    const { error: dbError } = await supabase.from("rsvps").upsert(
+      {
+        name,
+        email,
+        attending,
+        extra_guest_1: extraGuest1 ?? null,
+        extra_guest_2: extraGuest2 ?? null,
+        extra_guest_3: extraGuest3 ?? null,
+        submitted_at: submittedAt,
+      },
+      { onConflict: "email" }
+    )
 
     if (dbError) {
-      console.error("Supabase insert error:", dbError)
-      // Check for duplicate email
-      if (dbError.code === "23505") {
-        return NextResponse.json(
-          { error: "An RSVP with this email has already been submitted." },
-          { status: 409 }
-        )
-      }
+      console.error("Supabase upsert error:", dbError)
       return NextResponse.json({ error: "Failed to save RSVP. Please try again." }, { status: 500 })
     }
 
@@ -118,7 +114,10 @@ export async function POST(request: NextRequest) {
       console.error("Confirmation email failed (non-fatal):", emailResult.reason)
     }
 
-    return NextResponse.json({ success: true, message: "RSVP submitted successfully!" })
+    return NextResponse.json({
+      success: true,
+      message: "RSVP saved successfully!",
+    })
   } catch (error) {
     console.error("RSVP route error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
