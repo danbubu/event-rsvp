@@ -21,6 +21,18 @@ export interface RSVPSheetRow {
   submittedAt: string
 }
 
+function sheetRowValues(data: RSVPSheetRow): string[] {
+  return [
+    data.guestName,
+    data.email,
+    data.attending ? "Yes ✅" : "No ❌",
+    data.extraGuest1 ?? "",
+    data.extraGuest2 ?? "",
+    data.extraGuest3 ?? "",
+    data.submittedAt,
+  ]
+}
+
 /** All three must be set; otherwise the RSVP route skips Sheets (Supabase remains primary). */
 export function isGoogleSheetsConfigured(): boolean {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim()
@@ -45,19 +57,68 @@ export async function appendRSVPToSheet(data: RSVPSheetRow) {
     range: "Sheet1!A:G",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [
-        [
-          data.guestName,
-          data.email,
-          data.attending ? "Yes ✅" : "No ❌",
-          data.extraGuest1 ?? "",
-          data.extraGuest2 ?? "",
-          data.extraGuest3 ?? "",
-          data.submittedAt,
-        ],
-      ],
+      values: [sheetRowValues(data)],
     },
   })
+}
+
+/**
+ * Finds a row by email (column B) and overwrites A–G. Returns false if no match (e.g. sheet out of sync).
+ */
+export async function updateRSVPRowByEmail(data: RSVPSheetRow): Promise<boolean> {
+  const auth = new google.auth.GoogleAuth({
+    credentials: {
+      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    },
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  })
+
+  const sheets = google.sheets({ version: "v4", auth })
+  const spreadsheetId = getSpreadsheetId()
+
+  const existing = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Sheet1!B2:B",
+  })
+
+  const colB = existing.data.values ?? []
+  const target = data.email.trim().toLowerCase()
+
+  for (let i = 0; i < colB.length; i++) {
+    const cell = colB[i]?.[0]?.toString().trim().toLowerCase()
+    if (cell === target) {
+      const rowNum = i + 2
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `Sheet1!A${rowNum}:G${rowNum}`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+          values: [sheetRowValues(data)],
+        },
+      })
+      return true
+    }
+  }
+
+  return false
+}
+
+/** Append on first submission; on later submissions update the row with the same email (append if missing). */
+export async function syncRSVPToSheet(data: RSVPSheetRow, isNewEmail: boolean): Promise<void> {
+  if (!isGoogleSheetsConfigured()) return
+
+  await ensureSheetHeaders()
+
+  if (isNewEmail) {
+    await appendRSVPToSheet(data)
+    return
+  }
+
+  const updated = await updateRSVPRowByEmail(data)
+  if (!updated) {
+    await appendRSVPToSheet(data)
+  }
 }
 
 /**

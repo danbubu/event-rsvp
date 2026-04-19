@@ -255,7 +255,7 @@ export async function sendConfirmationEmail(data: RSVPEmailData) {
 
   const transporter = createSmtpTransport()
   await transporter.sendMail({
-    from: `"Mary-Ann's 21st" <${smtpUser}>`,
+    from: `"Mary-Ann's 21st 🎉" <${smtpUser}>`,
     to: data.email,
     subject,
     html,

@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getSupabaseServiceClient } from "@/lib/supabase"
-import { appendRSVPToSheet, ensureSheetHeaders, isGoogleSheetsConfigured } from "@/lib/googleSheets"
+import { isGoogleSheetsConfigured, syncRSVPToSheet } from "@/lib/googleSheets"
 import { sendConfirmationEmail } from "@/lib/email"
 import { isRsvpOpen, PARTY_CONFIG } from "@/lib/config"
 
@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
     }
 
     const isFirstInsert = prior === null
-    /** Sheet: one row per email — append only the first time this email submits */
-    const shouldAppendSheet = isFirstInsert && isGoogleSheetsConfigured()
+    /** Sheet: one row per email — append on first submit, update row on resubmits (same email) */
+    const shouldSyncSheet = isGoogleSheetsConfigured()
 
     const extraGuests = [extraGuest1, extraGuest2, extraGuest3]
       .map((g) => g?.trim())
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     }
 
     const [sheetResult, emailResult] = await Promise.allSettled([
-      shouldAppendSheet ? ensureSheetHeaders().then(() => appendRSVPToSheet(sheetRow)) : Promise.resolve(),
+      shouldSyncSheet ? syncRSVPToSheet(sheetRow, isFirstInsert) : Promise.resolve(),
       shouldSendAnyEmail ? sendConfirmationEmail(emailPayload) : Promise.resolve(),
     ])
 
