@@ -3,15 +3,17 @@
 // ============================================================
 
 export const PARTY_CONFIG = {
-  name: "Birthday Celebration Party",
+  name: "✨ Mary-Ann's 21st ✨",
   hostName: "Mary-Ann",
   date: "Friday, 25th April 2026",
   time: "9:00 PM",
   startsAtISO: "2026-04-25T21:00:00+00:00",
   endsAtISO: "2026-04-26T03:00:00+00:00",
   location: "Somewhere in Kumasi",
-  theme: "No Dirty Vibes ✨",
-  rsvpDeadline: "April 23rd, 2026",
+  /** Vibe line (flanked by 🥂 in the UI) */
+  theme: "No Dirty Vibes",
+  /** Shown in the deadline pill after “RSVP by ” */
+  rsvpDeadline: "Wednesday, April 22nd",
   maxExtraGuests: 3, // guests can bring up to 3 extras
   confirmationEmail: {
     subject: "You're on the list! 🎉",
@@ -21,7 +23,7 @@ export const PARTY_CONFIG = {
 📅  ${`Friday, 25th April 2026`}
 ⏰  ${"9:00 PM"}
 📍  ${"Somewhere in Kumasi"}
-✨  Dress Code: No Dirty Vibes
+✨  Dress code: white & gold · No Dirty Vibes
 
 If you brought friends along, make sure they're ready to match the energy!
 See you there. 🥂`,

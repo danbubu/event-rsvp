@@ -38,11 +38,6 @@ const MapPinIcon = () => (
     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
   </svg>
 )
-const SparkleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z" />
-  </svg>
-)
 const UserPlusIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />
@@ -312,7 +307,13 @@ export default function RSVPPage() {
   }
 
   if (submitState === "success") {
-    return <SuccessScreen attending={watchedAttending === "yes"} name={watchedName ?? ""} />
+    return (
+      <SuccessScreen
+        attending={watchedAttending === "yes"}
+        name={watchedName ?? ""}
+        hasExtraGuests={guestCount > 0}
+      />
+    )
   }
 
   return (
@@ -357,8 +358,7 @@ export default function RSVPPage() {
               <span>{PARTY_CONFIG.location}</span>
             </div>
             <div className="detail-vibe">
-              <SparkleIcon />
-              <span>{PARTY_CONFIG.theme}</span>
+              <span>🥂 {PARTY_CONFIG.theme} 🥂</span>
             </div>
           </div>
 
@@ -452,6 +452,9 @@ export default function RSVPPage() {
                   <UserPlusIcon />
                   <span>Bringing anyone?</span>
                 </div>
+                <p className="guest-preapproval-notice">
+                  All extra guests need Mary-Ann&apos;s pre-approval 🤍
+                </p>
                 <p className="guest-section-sub">You can bring up to {PARTY_CONFIG.maxExtraGuests} extra guests. Name them below!</p>
 
                 <div className="guest-count-row segmented">
@@ -568,7 +571,15 @@ function CountdownBlock({ value, label }: { value: number; label: string }) {
 }
 
 // ─── Success Screen ─────────────────────────────────────────────
-function SuccessScreen({ attending, name }: { attending: boolean; name: string }) {
+function SuccessScreen({
+  attending,
+  name,
+  hasExtraGuests,
+}: {
+  attending: boolean
+  name: string
+  hasExtraGuests: boolean
+}) {
   useEffect(() => {
     playConfettiBurstSound()
     void confetti({
@@ -599,6 +610,9 @@ function SuccessScreen({ attending, name }: { attending: boolean; name: string }
             ? "Mary-Ann can't wait to see you. Get ready to party 🔥"
             : "Mary-Ann hopes to see you next time. Thanks for sending your RSVP with love."}
         </p>
+        {attending && hasExtraGuests && (
+          <p className="success-guest-followup">Mary-Ann will be in touch to confirm your guest(s) 🤍</p>
+        )}
         <div className="success-vibe">We&apos;ve got you down, {firstName}.</div>
         <div className="success-actions">
           <a href={createGoogleCalendarLink()} target="_blank" rel="noreferrer" className="calendar-link">

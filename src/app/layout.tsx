@@ -6,8 +6,20 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
-  title: "Birthday Celebration Party — RSVP",
-  description: "You're invited! RSVP for Mary-Ann's Birthday Celebration Party on Friday, 25th April 2026 in Kumasi.",
+  title: "✨ Mary-Ann's 21st ✨",
+  description: "You're invited. RSVP before Wednesday 🥂",
+  openGraph: {
+    title: "✨ Mary-Ann's 21st ✨",
+    description: "You're invited. RSVP before Wednesday 🥂",
+    url: "https://mary-ann-turns-up.vercel.app",
+    siteName: "Mary-Ann's 21st",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "✨ Mary-Ann's 21st ✨",
+    description: "You're invited. RSVP before Wednesday 🥂",
+  },
 }
 
 export default function RootLayout({
