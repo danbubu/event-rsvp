@@ -14,6 +14,11 @@ export const PARTY_CONFIG = {
   theme: "No Dirty Vibes",
   /** Shown in the deadline pill after “RSVP by ” */
   rsvpDeadline: "Wednesday, April 22nd",
+  /**
+   * Submissions close at this instant (Ghana is UTC+0 year-round — use the same offset).
+   * “RSVP by Wednesday” → close at the start of Thursday (first moment after Wednesday ends).
+   */
+  rsvpClosesAtISO: "2026-04-23T00:00:00+00:00",
   maxExtraGuests: 3, // guests can bring up to 3 extras
   confirmationEmail: {
     subject: "You're on the list! 🎉",
@@ -31,3 +36,8 @@ See you there. 🥂`,
 } as const
 
 export type PartyConfig = typeof PARTY_CONFIG
+
+/** True while new RSVP submissions are accepted (checked on server and client). */
+export function isRsvpOpen(now: Date = new Date()): boolean {
+  return now.getTime() < new Date(PARTY_CONFIG.rsvpClosesAtISO).getTime()
+}

@@ -3,6 +3,7 @@ import { z } from "zod"
 import { getSupabaseServiceClient } from "@/lib/supabase"
 import { appendRSVPToSheet, ensureSheetHeaders, isGoogleSheetsConfigured } from "@/lib/googleSheets"
 import { sendConfirmationEmail } from "@/lib/email"
+import { isRsvpOpen, PARTY_CONFIG } from "@/lib/config"
 
 // Validation schema
 const rsvpSchema = z.object({
@@ -50,6 +51,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many submissions. Please try again later." }, { status: 429 })
     }
 
+    if (!isRsvpOpen()) {
+      return NextResponse.json(
+        {
+          error: `RSVP is closed — we stopped taking responses after ${PARTY_CONFIG.rsvpDeadline}.`,
+          code: "RSVP_CLOSED",
+        },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
     const parsed = rsvpSchema.safeParse(body)
 
@@ -83,9 +94,24 @@ export async function POST(request: NextRequest) {
     const isFirstInsert = prior === null
     /** Sheet: one row per email — append only the first time this email submits */
     const shouldAppendSheet = isFirstInsert && isGoogleSheetsConfigured()
-    /** Email: only when they’re attending and newly “yes” (first RSVP yes, or changed from no → yes) */
-    const shouldSendConfirmationEmail =
-      attending === true && (prior === null || prior.attending === false)
+
+    const extraGuests = [extraGuest1, extraGuest2, extraGuest3]
+      .map((g) => g?.trim())
+      .filter((g): g is string => Boolean(g))
+    const guestCount = extraGuests.length
+
+    const emailPayload = {
+      guestName: name,
+      email,
+      attending,
+      guestCount,
+      extraGuests,
+    }
+
+    /** Yes: first “yes” or flipped from no → yes. No: first “no” or flipped from yes → no (not on repeat “no”) */
+    const shouldSendYesEmail = attending === true && (prior === null || prior.attending === false)
+    const shouldSendNoEmail = attending === false && (prior === null || prior.attending === true)
+    const shouldSendAnyEmail = shouldSendYesEmail || shouldSendNoEmail
 
     const { error: dbError } = await supabase.from("rsvps").upsert(
       {
@@ -120,9 +146,7 @@ export async function POST(request: NextRequest) {
 
     const [sheetResult, emailResult] = await Promise.allSettled([
       shouldAppendSheet ? ensureSheetHeaders().then(() => appendRSVPToSheet(sheetRow)) : Promise.resolve(),
-      shouldSendConfirmationEmail
-        ? sendConfirmationEmail({ name, email, attending, extraGuest1, extraGuest2, extraGuest3 })
-        : Promise.resolve(),
+      shouldSendAnyEmail ? sendConfirmationEmail(emailPayload) : Promise.resolve(),
     ])
 
     if (sheetResult.status === "rejected") {

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import confetti from "canvas-confetti"
-import { PARTY_CONFIG } from "@/lib/config"
+import { PARTY_CONFIG, isRsvpOpen } from "@/lib/config"
 import "./rsvp.css"
 
 // ─── Schema ────────────────────────────────────────────────────
@@ -109,6 +109,14 @@ export default function RSVPPage() {
   const [attending, setAttending] = useState<"yes" | "no" | null>(null)
   const [theme, setTheme] = useState<"dark" | "light">("dark")
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+  const [rsvpOpen, setRsvpOpen] = useState(() => isRsvpOpen())
+
+  useEffect(() => {
+    const tick = () => setRsvpOpen(isRsvpOpen())
+    tick()
+    const id = window.setInterval(tick, 30_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   useEffect(() => {
     const saved = localStorage.getItem("rsvp-theme") as "dark" | "light" | null
@@ -275,6 +283,12 @@ export default function RSVPPage() {
   }, [guestCount, setValue])
 
   const onSubmit = async (data: FormData) => {
+    if (!isRsvpOpen()) {
+      setSubmitState("error")
+      setErrorMsg(`RSVP is closed — we stopped taking responses after ${PARTY_CONFIG.rsvpDeadline}.`)
+      return
+    }
+
     setSubmitState("loading")
     setErrorMsg("")
 
@@ -293,9 +307,12 @@ export default function RSVPPage() {
         }),
       })
 
-      const json = await res.json()
+      const json = await res.json() as { error?: string; code?: string }
       if (!res.ok) {
         setErrorMsg(json.error || "Something went wrong. Please try again.")
+        if (json.code === "RSVP_CLOSED") {
+          setRsvpOpen(false)
+        }
         setSubmitState("error")
         return
       }
@@ -362,9 +379,11 @@ export default function RSVPPage() {
             </div>
           </div>
 
-          <div className="deadline-wrap">
+          <div className={`deadline-wrap ${!rsvpOpen ? "deadline-wrap--closed" : ""}`}>
             <span className="deadline-ring" />
-            <div className="deadline-badge">RSVP by {PARTY_CONFIG.rsvpDeadline}</div>
+            <div className={`deadline-badge ${!rsvpOpen ? "deadline-badge--closed" : ""}`}>
+              {rsvpOpen ? `RSVP by ${PARTY_CONFIG.rsvpDeadline}` : "RSVP closed"}
+            </div>
           </div>
         </div>
 
@@ -383,6 +402,8 @@ export default function RSVPPage() {
 
         {/* RSVP Form Card */}
         <div className="form-card">
+          {rsvpOpen ? (
+            <>
           <h2 className="form-title">Will you be there?</h2>
           <p className="form-subtitle">Let us know so we can plan accordingly 🥂</p>
 
@@ -545,6 +566,17 @@ export default function RSVPPage() {
               )}
             </button>
           </form>
+            </>
+          ) : (
+            <div className="rsvp-closed-panel">
+              <h2 className="rsvp-closed-title">RSVP has closed</h2>
+              <p className="rsvp-closed-body">
+                Thanks to everyone who responded — we stopped taking new RSVPs after{" "}
+                <strong>{PARTY_CONFIG.rsvpDeadline}</strong>. If you already sent yours, you&apos;re all set.
+                The party countdown is still on; we can&apos;t wait to celebrate with you 🥂
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </main>

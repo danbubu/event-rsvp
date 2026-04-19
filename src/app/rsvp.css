@@ -255,6 +255,44 @@
   color: #db2777;
 }
 
+.deadline-wrap--closed .deadline-ring {
+  animation: none;
+  opacity: 0.35;
+}
+.deadline-badge--closed {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.55);
+}
+[data-theme="light"] .deadline-badge--closed {
+  background: rgba(107, 114, 128, 0.08);
+  border: 1px solid rgba(107, 114, 128, 0.25);
+  color: #6b7280;
+}
+
+.rsvp-closed-panel {
+  text-align: center;
+  padding: 0.25rem 0 0.5rem;
+}
+.rsvp-closed-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 14px;
+  color: var(--text-primary);
+}
+.rsvp-closed-body {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 26rem;
+  margin: 0 auto;
+}
+.rsvp-closed-body strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
 .countdown-card {
   border-radius: var(--radius-xl);
   padding: 1rem 0.9rem 1.05rem;
