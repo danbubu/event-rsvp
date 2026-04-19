@@ -33,7 +33,7 @@ function buildAttendingEmailHtml(data: RSVPEmailData): string {
     .filter(Boolean)
     .map(
       (name) =>
-        `<p style="margin:6px 0 0;font-size:14px;color:#A78BFA;font-weight:500;">· ${escapeHtml(name)}</p>`
+        `<p style="margin:6px 0 0;font-size:14px;color:#A67C2E;font-weight:500;">· ${escapeHtml(name)}</p>`
     )
     .join("")
 
@@ -42,9 +42,9 @@ function buildAttendingEmailHtml(data: RSVPEmailData): string {
       ? `
           <tr>
             <td style="padding:0 32px 24px;">
-              <div style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:16px 18px;">
-                <p style="margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(167,139,250,0.7);">Your Guest(s)</p>
-                <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.6);font-style:italic;">Remember — all extra guests need Mary-Ann's pre-approval 🔒</p>
+              <div style="background:rgba(201,150,59,0.08);border:1px solid rgba(201,150,59,0.25);border-radius:12px;padding:16px 18px;">
+                <p style="margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#C9963B;">Your Guest(s)</p>
+                <p style="margin:0 0 8px;font-size:13px;color:#888070;font-style:italic;">Remember — all extra guests need Mary-Ann's pre-approval 🔒</p>
                 ${guestRows}
               </div>
             </td>
@@ -61,56 +61,56 @@ function buildAttendingEmailHtml(data: RSVPEmailData): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>You're on the list 🎉</title>
 </head>
-<body style="margin:0;padding:0;background-color:#0D0D1A;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0D0D1A;padding:40px 16px;">
+<body style="margin:0;padding:0;background-color:#F9F5E7;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F9F5E7;padding:40px 16px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#13132A;border-radius:20px;overflow:hidden;border:1px solid rgba(124,58,237,0.25);">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#FFFFFF;border-radius:20px;overflow:hidden;border:1px solid rgba(201,150,59,0.25);box-shadow:0 8px 40px rgba(201,150,59,0.12);">
           <tr>
-            <td style="height:4px;background:linear-gradient(90deg,#7C3AED,#DB2777,#F59E0B);"></td>
+            <td style="height:4px;background:linear-gradient(90deg,#C9963B,#F0C060,#ffffff,#F0C060,#C9963B);"></td>
           </tr>
           <tr>
             <td align="center" style="padding:40px 32px 24px;">
               <div style="font-size:48px;margin-bottom:16px;">🎉</div>
-              <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;background:linear-gradient(90deg,#A78BFA,#F472B6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.02em;">You're on the list!</h1>
-              <p style="margin:0;font-size:15px;color:rgba(255,255,255,0.55);line-height:1.6;">
-                Hey <strong style="color:#A78BFA;">${firstName}</strong> 🤍<br/>
+              <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;background:linear-gradient(90deg,#A67C2E,#F0C060,#A67C2E);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.02em;">You're on the list!</h1>
+              <p style="margin:0;font-size:15px;color:#2D2D2D;line-height:1.6;">
+                Hey <strong style="color:#C9963B;">${firstName}</strong> 🤍<br/>
                 Mary-Ann got your RSVP and she literally can't wait to see you.
               </p>
             </td>
           </tr>
           <tr>
             <td style="padding:0 32px;">
-              <div style="height:1px;background:rgba(255,255,255,0.08);"></div>
+              <div style="height:1px;background:rgba(201,150,59,0.2);"></div>
             </td>
           </tr>
           <tr>
             <td style="padding:28px 32px;">
-              <p style="margin:0 0 16px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);">Event Details</p>
+              <p style="margin:0 0 16px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#C9963B;">Event Details</p>
               <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:14px;">
                 <tr>
                   <td width="28" valign="top" style="padding-top:2px;font-size:16px;">✨</td>
-                  <td><p style="margin:0;font-size:15px;font-weight:700;color:#ffffff;">Mary-Ann's 21st</p></td>
+                  <td><p style="margin:0;font-size:15px;font-weight:700;color:#A67C2E;">Mary-Ann's 21st</p></td>
                 </tr>
               </table>
               <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:14px;">
                 <tr>
                   <td width="28" valign="top" style="padding-top:2px;font-size:16px;">📅</td>
-                  <td><p style="margin:0;font-size:14px;color:rgba(255,255,255,0.75);">${dateLine}</p></td>
+                  <td><p style="margin:0;font-size:14px;color:#2D2D2D;">${dateLine}</p></td>
                 </tr>
               </table>
               <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:14px;">
                 <tr>
                   <td width="28" valign="top" style="padding-top:2px;font-size:16px;">🕘</td>
-                  <td><p style="margin:0;font-size:14px;color:rgba(255,255,255,0.75);">${timeLine}</p></td>
+                  <td><p style="margin:0;font-size:14px;color:#2D2D2D;">${timeLine}</p></td>
                 </tr>
               </table>
               <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:6px;">
                 <tr>
                   <td width="28" valign="top" style="padding-top:2px;font-size:16px;">📍</td>
                   <td>
-                    <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.75);">Kumasi — exact location coming soon 🤍</p>
-                    <p style="margin:4px 0 0;font-size:12px;font-style:italic;color:rgba(255,255,255,0.35);">We'll send you the full address once it's confirmed.</p>
+                    <p style="margin:0;font-size:14px;color:#2D2D2D;">Kumasi — exact location coming soon 🤍</p>
+                    <p style="margin:4px 0 0;font-size:12px;font-style:italic;color:#888070;">We'll send you the full address once it's confirmed.</p>
                   </td>
                 </tr>
               </table>
@@ -119,23 +119,23 @@ function buildAttendingEmailHtml(data: RSVPEmailData): string {
           ${guestBlock}
           <tr>
             <td style="padding:0 32px;">
-              <div style="height:1px;background:rgba(255,255,255,0.08);"></div>
+              <div style="height:1px;background:rgba(201,150,59,0.2);"></div>
             </td>
           </tr>
           <tr>
             <td align="center" style="padding:24px 32px;">
-              <p style="margin:0;font-size:16px;font-weight:600;color:#F59E0B;font-style:italic;letter-spacing:0.02em;">🥂 No Dirty Vibes 🥂</p>
-              <p style="margin:8px 0 0;font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">Come with good energy, dress your best,<br/>and let's make her night unforgettable.</p>
+              <p style="margin:0;font-size:16px;font-weight:600;color:#A67C2E;font-style:italic;letter-spacing:0.02em;">🥂 No Dirty Vibes 🥂</p>
+              <p style="margin:8px 0 0;font-size:13px;color:#888070;line-height:1.6;">Come with good energy, dress your best,<br/>and let's make her night unforgettable.</p>
             </td>
           </tr>
           <tr>
             <td align="center" style="padding:0 32px 32px;">
-              <a href="${SITE_URL}" style="display:inline-block;padding:14px 32px;background:linear-gradient(90deg,#7C3AED,#DB2777);color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:50px;letter-spacing:0.04em;">View Invitation 🎊</a>
+              <a href="${SITE_URL}" style="display:inline-block;padding:14px 32px;background:linear-gradient(90deg,#C9963B,#F0C060,#C9963B);color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:50px;letter-spacing:0.04em;box-shadow:0 4px 20px rgba(201,150,59,0.4);">View Invitation 🎊</a>
             </td>
           </tr>
           <tr>
-            <td style="background:#0D0D1A;padding:20px 32px;border-radius:0 0 20px 20px;">
-              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.25);text-align:center;line-height:1.7;">This email was sent because you RSVPed to Mary-Ann's 21st birthday celebration.<br/>If this wasn't you, you can safely ignore this email.</p>
+            <td style="background:#FFFFFF;padding:20px 32px;border-radius:0 0 20px 20px;">
+              <p style="margin:0;font-size:12px;color:#AAAAAA;text-align:center;line-height:1.7;">This email was sent because you RSVPed to Mary-Ann's 21st birthday celebration.<br/>If this wasn't you, you can safely ignore this email.</p>
             </td>
           </tr>
         </table>
@@ -155,29 +155,32 @@ function buildNotAttendingEmailHtml(data: RSVPEmailData): string {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>You'll be missed 💜</title>
+  <title>You'll be missed</title>
+  <style type="text/css">
+    .decline-cta:hover { background: rgba(201,150,59,0.06) !important; }
+  </style>
 </head>
-<body style="margin:0;padding:0;background-color:#0D0D1A;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0D0D1A;padding:40px 16px;">
+<body style="margin:0;padding:0;background-color:#F9F5E7;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F9F5E7;padding:40px 16px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#13132A;border-radius:20px;overflow:hidden;border:1px solid rgba(124,58,237,0.25);">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#FFFFFF;border-radius:20px;overflow:hidden;border:1px solid rgba(201,150,59,0.2);box-shadow:0 8px 40px rgba(201,150,59,0.12);">
           <tr>
-            <td style="height:4px;background:linear-gradient(90deg,#7C3AED,#DB2777,#F59E0B);"></td>
+            <td style="height:4px;background:linear-gradient(90deg,#C9963B,#F0C060,#ffffff,#F0C060,#C9963B);"></td>
           </tr>
           <tr>
             <td align="center" style="padding:48px 32px 40px;">
-              <div style="font-size:48px;margin-bottom:20px;">💜</div>
-              <h1 style="margin:0 0 12px;font-size:24px;font-weight:800;color:#ffffff;">You'll be missed, ${firstName}.</h1>
-              <p style="margin:0;font-size:15px;color:rgba(255,255,255,0.55);line-height:1.7;max-width:360px;">Mary-Ann's gutted you can't make it, but she appreciates you letting her know. Wishing you love from afar on her big night 🥂</p>
-              <div style="margin:32px 0;height:1px;background:rgba(255,255,255,0.08);"></div>
-              <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.35);font-style:italic;">Changed your mind? The RSVP is open until ${deadlineNote}.</p>
-              <a href="${SITE_URL}" style="display:inline-block;margin-top:16px;padding:12px 28px;border:1.5px solid rgba(124,58,237,0.5);color:#A78BFA;font-size:14px;font-weight:600;text-decoration:none;border-radius:50px;">Go back to the invite</a>
+              <div style="font-size:48px;margin-bottom:20px;">🤍</div>
+              <h1 style="margin:0 0 12px;font-size:24px;font-weight:800;background:linear-gradient(90deg,#A67C2E,#F0C060,#A67C2E);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">You'll be missed, ${firstName}.</h1>
+              <p style="margin:0;font-size:15px;color:#2D2D2D;line-height:1.7;max-width:360px;">Mary-Ann's gutted you can't make it, but she appreciates you letting her know. Wishing you love from afar on her big night 🥂</p>
+              <div style="margin:32px 0;height:1px;background:rgba(201,150,59,0.2);"></div>
+              <p style="margin:0;font-size:13px;color:#888070;font-style:italic;">Changed your mind? The RSVP is open until ${deadlineNote}.</p>
+              <a class="decline-cta" href="${SITE_URL}" style="display:inline-block;margin-top:16px;padding:12px 28px;border:1.5px solid #C9963B;color:#A67C2E;background:transparent;font-size:14px;font-weight:600;text-decoration:none;border-radius:50px;">Go back to the invite</a>
             </td>
           </tr>
           <tr>
-            <td style="background:#0D0D1A;padding:20px 32px;border-radius:0 0 20px 20px;">
-              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.25);text-align:center;">This email was sent because you responded to Mary-Ann's 21st birthday RSVP.</p>
+            <td style="background:#FFFFFF;padding:20px 32px;border-radius:0 0 20px 20px;">
+              <p style="margin:0;font-size:12px;color:#AAAAAA;text-align:center;">This email was sent because you responded to Mary-Ann's 21st birthday RSVP.</p>
             </td>
           </tr>
         </table>
@@ -200,7 +203,7 @@ function buildEmailContent(data: RSVPEmailData): { html: string; subject: string
 
   return {
     html: buildNotAttendingEmailHtml(data),
-    subject: `You'll be missed 💜 — Mary-Ann's 21st`,
+    subject: `You'll be missed 🤍 — Mary-Ann's 21st`,
   }
 }
 
