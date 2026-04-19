@@ -67,8 +67,26 @@ export async function POST(request: NextRequest) {
 
     const submittedAt = new Date().toISOString()
 
-    // 1. Save to Supabase (primary store) — upsert on email so guests can change their RSVP later
     const supabase = getSupabaseServiceClient()
+
+    const { data: prior, error: priorError } = await supabase
+      .from("rsvps")
+      .select("attending")
+      .eq("email", email)
+      .maybeSingle()
+
+    if (priorError) {
+      console.error("Supabase prior lookup error:", priorError)
+      return NextResponse.json({ error: "Failed to save RSVP. Please try again." }, { status: 500 })
+    }
+
+    const isFirstInsert = prior === null
+    /** Sheet: one row per email — append only the first time this email submits */
+    const shouldAppendSheet = isFirstInsert && isGoogleSheetsConfigured()
+    /** Email: only when they’re attending and newly “yes” (first RSVP yes, or changed from no → yes) */
+    const shouldSendConfirmationEmail =
+      attending === true && (prior === null || prior.attending === false)
+
     const { error: dbError } = await supabase.from("rsvps").upsert(
       {
         name,
@@ -101,10 +119,10 @@ export async function POST(request: NextRequest) {
     }
 
     const [sheetResult, emailResult] = await Promise.allSettled([
-      isGoogleSheetsConfigured()
-        ? ensureSheetHeaders().then(() => appendRSVPToSheet(sheetRow))
+      shouldAppendSheet ? ensureSheetHeaders().then(() => appendRSVPToSheet(sheetRow)) : Promise.resolve(),
+      shouldSendConfirmationEmail
+        ? sendConfirmationEmail({ name, email, attending, extraGuest1, extraGuest2, extraGuest3 })
         : Promise.resolve(),
-      sendConfirmationEmail({ name, email, attending, extraGuest1, extraGuest2, extraGuest3 }),
     ])
 
     if (sheetResult.status === "rejected") {
