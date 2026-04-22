@@ -11,7 +11,7 @@ export const PARTY_CONFIG = {
   endsAtISO: "2026-04-25T03:00:00+00:00",
   location: "Somewhere in Kumasi",
   /** Vibe line (flanked by 🥂 in the UI) */
-  theme: "No Dirty Vibes",
+  theme: "Come through and show out 🎉",
   /** Shown in the deadline pill after “RSVP by ” */
   rsvpDeadline: "Wednesday, April 22nd",
   /**

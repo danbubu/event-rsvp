@@ -38,11 +38,6 @@ const MapPinIcon = () => (
     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
   </svg>
 )
-const UserPlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />
-  </svg>
-)
 
 function formatGoogleDate(value: string) {
   return new Date(value).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")
@@ -102,12 +97,9 @@ function playConfettiBurstSound() {
 
 // ─── Main Component ────────────────────────────────────────────
 export default function RSVPPage() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [submitState, setSubmitState] = useState<SubmitState>("idle")
   const [errorMsg, setErrorMsg] = useState("")
-  const [guestCount, setGuestCount] = useState(0)
   const [attending, setAttending] = useState<"yes" | "no" | null>(null)
-  const [theme, setTheme] = useState<"dark" | "light">("dark")
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
   const [rsvpOpen, setRsvpOpen] = useState(() => isRsvpOpen())
 
@@ -119,13 +111,6 @@ export default function RSVPPage() {
   }, [])
 
   useEffect(() => {
-    const saved = localStorage.getItem("rsvp-theme") as "dark" | "light" | null
-    const initial = saved ?? "dark"
-    setTheme(initial)
-    document.documentElement.setAttribute("data-theme", initial)
-  }, [])
-
-  useEffect(() => {
     setCountdown(getCountdownParts(PARTY_CONFIG.startsAtISO))
     const timer = window.setInterval(() => {
       setCountdown(getCountdownParts(PARTY_CONFIG.startsAtISO))
@@ -133,118 +118,6 @@ export default function RSVPPage() {
 
     return () => window.clearInterval(timer)
   }, [])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-
-    let raf = 0
-    const particles: Array<{
-      x: number
-      y: number
-      size: number
-      speedY: number
-      driftSeed: number
-      rotation: number
-      rotationSpeed: number
-      color: string
-      type: "dot" | "rect" | "sparkle"
-    }> = []
-
-    const palette = ["#7C3AED", "#DB2777", "#F59E0B", "#FFFFFF"]
-    const rand = (min: number, max: number) => Math.random() * (max - min) + min
-
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1
-      canvas.width = window.innerWidth * dpr
-      canvas.height = window.innerHeight * dpr
-      canvas.style.width = `${window.innerWidth}px`
-      canvas.style.height = `${window.innerHeight}px`
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    }
-
-    const seedParticles = () => {
-      particles.length = 0
-      const count = Math.min(90, Math.floor(window.innerWidth / 14))
-      for (let i = 0; i < count; i++) {
-        const roll = Math.random()
-        particles.push({
-          x: rand(0, window.innerWidth),
-          y: rand(0, window.innerHeight),
-          size: roll > 0.86 ? rand(3.6, 5.4) : rand(1.6, 3.3),
-          speedY: rand(0.22, 0.52),
-          driftSeed: rand(0.6, 1.4),
-          rotation: rand(0, Math.PI * 2),
-          rotationSpeed: rand(-0.02, 0.02),
-          color: palette[Math.floor(Math.random() * palette.length)] ?? "#7C3AED",
-          type: roll > 0.83 ? "sparkle" : roll > 0.5 ? "rect" : "dot",
-        })
-      }
-    }
-
-    const draw = (t: number) => {
-      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
-      const wind = Math.sin(t * 0.00055) * 0.36
-
-      for (const p of particles) {
-        p.y += p.speedY
-        p.x += wind + Math.sin((p.y + t * 0.02) * 0.01) * 0.18 * p.driftSeed
-        p.rotation += p.rotationSpeed
-
-        if (p.y > window.innerHeight + 20) {
-          p.y = -20
-          p.x = rand(0, window.innerWidth)
-        }
-        if (p.x < -20) p.x = window.innerWidth + 20
-        if (p.x > window.innerWidth + 20) p.x = -20
-
-        ctx.save()
-        ctx.translate(p.x, p.y)
-        ctx.rotate(p.rotation)
-        ctx.fillStyle = p.color
-        ctx.globalAlpha = p.type === "sparkle" ? 0.8 : 0.62
-
-        if (p.type === "dot") {
-          ctx.beginPath()
-          ctx.arc(0, 0, p.size * 0.42, 0, Math.PI * 2)
-          ctx.fill()
-        } else if (p.type === "rect") {
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6)
-        } else {
-          ctx.beginPath()
-          ctx.moveTo(0, -p.size)
-          ctx.lineTo(p.size * 0.36, 0)
-          ctx.lineTo(0, p.size)
-          ctx.lineTo(-p.size * 0.36, 0)
-          ctx.closePath()
-          ctx.fill()
-        }
-        ctx.restore()
-      }
-
-      raf = window.requestAnimationFrame(draw)
-    }
-
-    resize()
-    seedParticles()
-    raf = window.requestAnimationFrame(draw)
-    window.addEventListener("resize", resize)
-
-    return () => {
-      window.cancelAnimationFrame(raf)
-      window.removeEventListener("resize", resize)
-    }
-  }, [])
-
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark"
-    setTheme(next)
-    document.documentElement.setAttribute("data-theme", next)
-    localStorage.setItem("rsvp-theme", next)
-  }
 
   const {
     register,
@@ -259,28 +132,6 @@ export default function RSVPPage() {
   const watchedAttending = watch("attending")
   const watchedName = watch("name")
   const watchedEmail = watch("email")
-  const watchedExtraGuest1 = watch("extraGuest1")
-  const watchedExtraGuest2 = watch("extraGuest2")
-  const watchedExtraGuest3 = watch("extraGuest3")
-
-  useEffect(() => {
-    if (guestCount === 0) {
-      setValue("extraGuest1", "")
-      setValue("extraGuest2", "")
-      setValue("extraGuest3", "")
-      return
-    }
-
-    if (guestCount === 1) {
-      setValue("extraGuest2", "")
-      setValue("extraGuest3", "")
-      return
-    }
-
-    if (guestCount === 2) {
-      setValue("extraGuest3", "")
-    }
-  }, [guestCount, setValue])
 
   const onSubmit = async (data: FormData) => {
     if (!isRsvpOpen()) {
@@ -300,9 +151,9 @@ export default function RSVPPage() {
           name: data.name,
           email: data.email,
           attending: data.attending === "yes",
-          extraGuest1: data.extraGuest1 || undefined,
-          extraGuest2: data.extraGuest2 || undefined,
-          extraGuest3: data.extraGuest3 || undefined,
+          extraGuest1: undefined,
+          extraGuest2: undefined,
+          extraGuest3: undefined,
           website: data.website || undefined,
         }),
       })
@@ -328,7 +179,7 @@ export default function RSVPPage() {
       <SuccessScreen
         attending={watchedAttending === "yes"}
         name={watchedName ?? ""}
-        hasExtraGuests={guestCount > 0}
+        hasExtraGuests={false}
       />
     )
   }
@@ -336,26 +187,13 @@ export default function RSVPPage() {
   return (
     <main className="rsvp-root rsvp-theme">
       <div className="top-shimmer" />
-      <div className="aurora" aria-hidden="true" />
-      <canvas ref={canvasRef} className="hero-canvas" aria-hidden="true" />
-      {/* Theme Toggle */}
-      <button
-        id="theme-toggle-btn"
-        className="theme-toggle"
-        onClick={toggleTheme}
-        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-        title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-      >
-        <span className={`toggle-icon ${theme === "dark" ? "sun" : "moon"}`}>{theme === "dark" ? "☀️" : "🌙"}</span>
-      </button>
 
       <div className="rsvp-container">
-        {/* Hero Card */}
         <div className="hero-card">
-          <div className="card-celebration-emoji" aria-hidden="true">
-            🎉
-          </div>
-          <h1 className="hero-title">{PARTY_CONFIG.name}</h1>
+          <div className="card-monogram" aria-hidden="true">M</div>
+          <p className="hero-script">Celebrating</p>
+          <h1 className="hero-title">21</h1>
+          <p className="hero-celebrating-line">{PARTY_CONFIG.hostName}&apos;s Birthday</p>
           <p className="hero-host">
             <span className="hero-host-label">Hosted by</span>
             <span className="hero-host-name">{PARTY_CONFIG.hostName}</span>
@@ -374,21 +212,24 @@ export default function RSVPPage() {
               <MapPinIcon />
               <span>{PARTY_CONFIG.location}</span>
             </div>
+            <a className="map-link-btn" href="https://maps.google.com" target="_blank" rel="noreferrer">
+              Open Map
+            </a>
             <div className="detail-vibe">
-              <span>🥂 {PARTY_CONFIG.theme} 🥂</span>
+              <span>{PARTY_CONFIG.theme}</span>
             </div>
           </div>
 
           <div className={`deadline-wrap ${!rsvpOpen ? "deadline-wrap--closed" : ""}`}>
             <span className="deadline-ring" />
             <div className={`deadline-badge ${!rsvpOpen ? "deadline-badge--closed" : ""}`}>
-              {rsvpOpen ? `RSVP by ${PARTY_CONFIG.rsvpDeadline}` : "RSVP closed"}
+              {rsvpOpen ? "RSVP by Friday, 24th April" : "RSVP closed"}
             </div>
           </div>
         </div>
 
         <section className="countdown-card" aria-live="polite">
-          <p className="countdown-label">Party starts in</p>
+          <p className="countdown-label">The Celebration Begins In</p>
           <div className="countdown-grid">
             <CountdownBlock value={countdown.days} label="Days" />
             <span className="countdown-sep">:</span>
@@ -400,12 +241,32 @@ export default function RSVPPage() {
           </div>
         </section>
 
-        {/* RSVP Form Card */}
+        <section className="highlights-card">
+          <p className="highlights-script">Evening Highlights</p>
+          <div className="highlights-divider" aria-hidden="true">
+            <div className="highlights-divider-line" />
+            <span className="highlights-divider-diamond">◆</span>
+            <div className="highlights-divider-line" />
+          </div>
+          <div className="highlights-list">
+            {[
+              { icon: "🎵", label: "Jams" },
+              { icon: "🎲", label: "Games and vibes" },
+              { icon: "🍽️", label: "Food and drinks" },
+            ].map((item) => (
+              <div key={item.label} className="highlight-item">
+                <span className="highlight-item-icon" aria-hidden="true">{item.icon}</span>
+                <span className="highlight-item-label">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <div className="form-card">
           {rsvpOpen ? (
             <>
           <h2 className="form-title">Will you be there?</h2>
-          <p className="form-subtitle">Let us know so we can plan accordingly 🥂</p>
+          <p className="form-subtitle">Let us know so we can plan accordingly.</p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="rsvp-form" id="rsvp-form" noValidate>
             {/* Name */}
@@ -437,7 +298,7 @@ export default function RSVPPage() {
             {/* Attending */}
             <div className="field-group">
               <label className="field-label">Are you coming?</label>
-              <div className="attend-buttons">
+              <div className="attend-buttons" role="group" aria-label="Will you attend?">
                 <button
                   type="button"
                   id="rsvp-attending-yes"
@@ -447,7 +308,7 @@ export default function RSVPPage() {
                     setValue("attending", "yes", { shouldValidate: true })
                   }}
                 >
-                  <span>🥳</span> Absolutely Yes!
+                  Absolutely Yes
                 </button>
                 <button
                   type="button"
@@ -456,83 +317,14 @@ export default function RSVPPage() {
                   onClick={() => {
                     setAttending("no")
                     setValue("attending", "no", { shouldValidate: true })
-                    setGuestCount(0)
                   }}
                 >
-                  <span>😔</span> Can&apos;t Make It
+                  Can&apos;t Make It
                 </button>
               </div>
               <input type="hidden" {...register("attending")} />
               {errors.attending && <span className="error-msg">{errors.attending.message}</span>}
             </div>
-
-            {/* Extra guests — only shown if attending */}
-            {attending === "yes" && (
-              <div className="guest-section">
-                <div className="guest-section-header">
-                  <UserPlusIcon />
-                  <span>Bringing anyone?</span>
-                </div>
-                <p className="guest-preapproval-notice">
-                  All extra guests need Mary-Ann&apos;s pre-approval 🤍
-                </p>
-                <p className="guest-section-sub">You can bring up to {PARTY_CONFIG.maxExtraGuests} extra guests. Name them below!</p>
-
-                <div className="guest-count-row segmented">
-                  <div className="segment-track">
-                    <span className="segment-indicator" style={{ transform: `translateX(${guestCount * 100}%)` }} />
-                    {[0, 1, 2, 3].map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        id={`rsvp-guest-count-${n}`}
-                        className={`guest-count-btn ${guestCount === n ? "active" : ""}`}
-                        onClick={() => setGuestCount(n)}
-                      >
-                        {n === 0 ? "Just me" : `+${n}`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`guest-fields-wrap ${guestCount >= 1 ? "open" : ""}`}>
-                  <div className={`field-group floating-field ${watchedExtraGuest1 ? "has-value" : ""}`}>
-                    <input
-                      id="rsvp-extra-guest-1"
-                      type="text"
-                      placeholder=" "
-                      className="field-input"
-                      {...register("extraGuest1")}
-                    />
-                    <label htmlFor="rsvp-extra-guest-1" className="field-label">Extra Guest 1 — Full Name</label>
-                  </div>
-                </div>
-                <div className={`guest-fields-wrap ${guestCount >= 2 ? "open" : ""}`}>
-                  <div className={`field-group floating-field ${watchedExtraGuest2 ? "has-value" : ""}`}>
-                    <input
-                      id="rsvp-extra-guest-2"
-                      type="text"
-                      placeholder=" "
-                      className="field-input"
-                      {...register("extraGuest2")}
-                    />
-                    <label htmlFor="rsvp-extra-guest-2" className="field-label">Extra Guest 2 — Full Name</label>
-                  </div>
-                </div>
-                <div className={`guest-fields-wrap ${guestCount >= 3 ? "open" : ""}`}>
-                  <div className={`field-group floating-field ${watchedExtraGuest3 ? "has-value" : ""}`}>
-                    <input
-                      id="rsvp-extra-guest-3"
-                      type="text"
-                      placeholder=" "
-                      className="field-input"
-                      {...register("extraGuest3")}
-                    />
-                    <label htmlFor="rsvp-extra-guest-3" className="field-label">Extra Guest 3 — Full Name</label>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Error banner */}
             {submitState === "error" && (
@@ -562,7 +354,7 @@ export default function RSVPPage() {
                   Sending...
                 </>
               ) : (
-                "Send My RSVP 🪅"
+                "Send My RSVP"
               )}
             </button>
           </form>
@@ -573,11 +365,21 @@ export default function RSVPPage() {
               <p className="rsvp-closed-body">
                 Thanks to everyone who responded — we stopped taking new RSVPs after{" "}
                 <strong>{PARTY_CONFIG.rsvpDeadline}</strong>. If you already sent yours, you&apos;re all set.
-                The party countdown is still on; we can&apos;t wait to celebrate with you 🥂
+                The party countdown is still on; we can&apos;t wait to celebrate with you.
               </p>
             </div>
           )}
         </div>
+
+        <section className="save-date-card">
+          <p className="save-date-script">Save the Date</p>
+          <p className="save-date-body">
+            Add this celebration to your calendar so you don&apos;t miss a single highlight.
+          </p>
+          <a href={createGoogleCalendarLink()} target="_blank" rel="noreferrer" className="calendar-link-btn">
+            Add to Calendar
+          </a>
+        </section>
       </div>
     </main>
   )
@@ -618,13 +420,13 @@ function SuccessScreen({
       particleCount: 120,
       spread: 60,
       origin: { x: 0.1, y: 1 },
-      colors: ["#7C3AED", "#DB2777", "#F59E0B", "#FFFFFF"],
+      colors: ["#C9A15D", "#D9B878", "#E8D9B5", "#F7F1E3", "#113A3E"],
     })
     void confetti({
       particleCount: 120,
       spread: 60,
       origin: { x: 0.9, y: 1 },
-      colors: ["#7C3AED", "#DB2777", "#F59E0B", "#FFFFFF"],
+      colors: ["#C9A15D", "#D9B878", "#E8D9B5", "#F7F1E3", "#113A3E"],
     })
   }, [])
 
@@ -633,7 +435,6 @@ function SuccessScreen({
   return (
     <main className="rsvp-root rsvp-theme">
       <div className="top-shimmer" />
-      <div className="aurora" aria-hidden="true" />
       <div className="success-card">
         <div className="success-emoji">🎉</div>
         <h1 className="success-title">{attending ? "You're on the list!" : "You'll be missed 💜"}</h1>
