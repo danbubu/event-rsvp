@@ -95,8 +95,8 @@
 }
 
 .card-monogram {
-  width: 76px;
-  height: 76px;
+  width: 102px;
+  height: 102px;
   border-radius: 50%;
   margin: 0 auto 1rem;
   background: linear-gradient(145deg, #faf3dc, #fbf7ee);
@@ -108,11 +108,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Playfair Display", serif;
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #c8a84b;
-  font-style: italic;
+  overflow: hidden;
+}
+
+.card-monogram-photo {
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 22%;
+  border: 1px solid rgba(200, 168, 75, 0.22);
 }
 
 .hero-script {

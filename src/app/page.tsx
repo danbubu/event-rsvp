@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Image from "next/image"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -190,7 +191,18 @@ export default function RSVPPage() {
 
       <div className="rsvp-container">
         <div className="hero-card">
-          <div className="card-monogram" aria-hidden="true">M</div>
+          <div className="card-monogram" aria-hidden="true">
+            <Image
+              src="/photo.png"
+              alt=""
+              className="card-monogram-photo"
+              width={220}
+              height={220}
+              sizes="102px"
+              quality={100}
+              priority
+            />
+          </div>
           <p className="hero-script">Celebrating</p>
           <h1 className="hero-title">21</h1>
           <p className="hero-celebrating-line">{PARTY_CONFIG.hostName}&apos;s Birthday</p>
